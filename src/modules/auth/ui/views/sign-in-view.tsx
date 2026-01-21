@@ -17,9 +17,9 @@ import { Input } from "@/components/ui/input";
 import { OctagonAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -28,9 +28,10 @@ const formSchema = z.object({
     .min(1, { message: "Password must be at least 6 characters long" }),
 });
 export const SignInView = () => {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   const [pending, setPending] = useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,7 +52,6 @@ export const SignInView = () => {
         onSuccess: () => {
           setPending(false);
           router.push("/");
-
         },
         onError: (err) => {
           setPending(false);
@@ -59,8 +59,27 @@ export const SignInView = () => {
         },
       },
     );
-    
   };
+
+   const onSocial = (provider: "github" | "google") => {
+      setError(null);
+      setPending(true);
+      authClient.signIn.social(
+        {
+          provider: provider,
+          callbackURL: "/",
+        },
+        {
+          onSuccess: () => {
+            setPending(false);
+          },
+          onError: (err) => {
+            setPending(false);
+            setError(err.error.message);
+          },
+        },
+      );
+    };
   return (
     <div className="flex flex-col gap-6">
       <Card className="overflow-hidden p-0">
@@ -131,10 +150,22 @@ export const SignInView = () => {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button variant="outline" type="button" className="w-full" disabled={pending}>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="w-full"
+                    disabled={pending}
+                    onClick={() => onSocial("google")}
+                  >
                     Google
                   </Button>
-                  <Button variant="outline" type="button" className="w-full" disabled={pending}>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="w-full"
+                    disabled={pending}
+                    onClick={() => onSocial("github")}
+                  >
                     GitHub
                   </Button>
                 </div>
