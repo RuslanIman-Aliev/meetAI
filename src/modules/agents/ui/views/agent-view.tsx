@@ -1,8 +1,7 @@
 "use client";
 import { ErrorState } from "@/components/error-state";
 import { LoadingState } from "@/components/loading-state";
-import { ResponsiveDialog } from "@/components/responsive-dialog";
-import { Button } from "@/components/ui/button";
+
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
@@ -13,11 +12,7 @@ export const AgentsView = () => {
   );
   
   return <div>
-    <ResponsiveDialog title="Responsive test" description="Responsive dialog description" isOpen ={true} onOpenChange={()=>{}}>
-      <Button>
-        Some action
-      </Button>
-    </ResponsiveDialog>
+   
   </div>;
 };
 
