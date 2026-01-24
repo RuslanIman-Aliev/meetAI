@@ -12,6 +12,7 @@ import { and, count, desc, eq, getTableColumns, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
 import { agentsInsertSchema, agentsUpdateSchema } from "../schemas";
 
+
 export const agentsRouter = createTRPCRouter({
   update: protectedProcedure
     .input(agentsUpdateSchema)
@@ -117,7 +118,6 @@ export const agentsRouter = createTRPCRouter({
           userId: ctx.auth.user.id,
         })
         .returning();
-
       return createadAgent;
     }),
 });
