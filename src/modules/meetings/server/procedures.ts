@@ -82,6 +82,7 @@ export const meetingsRouter = createTRPCRouter({
         .values({
           ...input,
           userId: ctx.auth.user.id,
+          status: MeetingStatus.Upcoming,
         })
         .returning();
 
@@ -207,6 +208,8 @@ export const meetingsRouter = createTRPCRouter({
           and(
             eq(meetings.userId, ctx.auth.user.id),
             search ? ilike(meetings.name, `%${search}%`) : undefined,
+            status ? eq(meetings.status, status) : undefined,
+      agentId ? eq(meetings.agentId, agentId) : undefined,
           ),
         );
 
