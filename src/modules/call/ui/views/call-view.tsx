@@ -1,3 +1,4 @@
+"use client";
 import { ErrorState } from "@/components/error-state";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -23,7 +24,9 @@ export const CallView = ({ meetingId }: Props) => {
       </div>
     );
   }
-  return <>
-    <CallProvider meetingId={meetingId} meetingName={data.name} />
-  </>;
+  return (
+    <>
+      <CallProvider meetingId={meetingId} meetingName={data.name} />
+    </>
+  );
 };
