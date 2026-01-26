@@ -1,6 +1,9 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MeetingGetOne } from "../../types";
+import { GeneratedAvatar } from "@/components/generated-avatar";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatDuration } from "@/lib/utils";
+import { format } from "date-fns";
 import {
   BookOpenTextIcon,
   ClockFadingIcon,
@@ -9,12 +12,11 @@ import {
   SparkleIcon,
   SparklesIcon,
 } from "lucide-react";
-import Markdown from "react-markdown";
 import Link from "next/link";
-import { GeneratedAvatar } from "@/components/generated-avatar";
-import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import { formatDuration } from "@/lib/utils";
+import Markdown from "react-markdown";
+import { MeetingGetOne } from "../../types";
+import { ChatProvider } from "./chat-provider";
+import { Transcript } from "./transcript";
 
 interface Props {
   data: MeetingGetOne;
@@ -80,7 +82,12 @@ export const CompletedState = ({ data }: Props) => {
             />
           </div>
         </TabsContent>
-
+        <TabsContent value="transcript">
+          <Transcript meetingId={data.id} />
+        </TabsContent>
+        <TabsContent value="chat">
+          <ChatProvider meetingId={data.id} meetingName={data.name} />
+        </TabsContent>
         <TabsContent value="summary">
           <div className="bg-white rounded-lg border ">
             <div className="flex flex-col col-span-5 px-4 py-5 gap-y-5">
@@ -132,19 +139,26 @@ export const CompletedState = ({ data }: Props) => {
                       <ul className="list-disc list-inside mb-6" {...props} />
                     ),
                     ol: (props) => (
-                      <ol className="list-decimal list-inside mb-6" {...props} />
+                      <ol
+                        className="list-decimal list-inside mb-6"
+                        {...props}
+                      />
                     ),
-                    li: (props) => (
-                      <li className="mb-1" {...props} />
-                    ),
+                    li: (props) => <li className="mb-1" {...props} />,
                     strong: (props) => (
                       <strong className="font-semibold" {...props} />
                     ),
                     code: (props) => (
-                      <code className="bg-gray-100 px-1 py-0.5 rounded" {...props} />
+                      <code
+                        className="bg-gray-100 px-1 py-0.5 rounded"
+                        {...props}
+                      />
                     ),
                     blockquote: (props) => (
-                      <blockquote className="border-l-4 pl-4 italic mb-4" {...props} />
+                      <blockquote
+                        className="border-l-4 pl-4 italic mb-4"
+                        {...props}
+                      />
                     ),
                   }}
                 >
