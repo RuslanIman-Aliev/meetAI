@@ -75,6 +75,7 @@
     "react-dom": "^19.0.0",
     "react-error-boundary": "^6.1.0",
     "react-hook-form": "^7.71.1",
+    "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.4.1",
     "recharts": "^2.15.4",
     "server-only": "^0.0.1",
@@ -82,7 +83,7 @@
     "tailwind-merge": "^3.4.0",
     "tsx": "^4.19.4",
     "vaul": "^1.1.2",
-    "zod": "^3.25.7"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
