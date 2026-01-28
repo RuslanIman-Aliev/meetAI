@@ -55,15 +55,12 @@ export async function POST(request: NextRequest) {
 
   const eventType = (payload as Record<string, unknown>)?.type;
 
-  if (eventType === "call.session_started") {
+ if (eventType === "call.session_started") {
     const event = payload as CallSessionStartedEvent;
     const meetingId = event.call.custom?.meetingId;
 
     if (!meetingId) {
-      return NextResponse.json(
-        { error: "Missing meeting ID in webhook payload" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing meeting ID" }, { status: 400 });
     }
 
     const [existingMeeting] = await db
@@ -80,10 +77,7 @@ export async function POST(request: NextRequest) {
       );
 
     if (!existingMeeting) {
-      return NextResponse.json(
-        { error: "Meeting not found or already started/completed" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
     }
 
     await db
@@ -100,7 +94,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
+    await streamVideo.upsertUsers([
+        {
+          id: existingAgent.id,
+          name: existingAgent.name,
+          role: "user",
+          image: generateAvatarUri({
+             seed: existingAgent.name,
+             variant: "botttsNeutral",
+          }),
+        },
+    ]);
+
     const call = streamVideo.video.call("default", meetingId);
+    
     const realtimeClient = await streamVideo.video.connectOpenAi({
       call,
       openAiApiKey: process.env.OPENAI_API_KEY!,
@@ -108,7 +115,14 @@ export async function POST(request: NextRequest) {
     });
 
     realtimeClient.updateSession({
-      instructions: existingAgent.instructions,
+      instructions: `
+        ${existingAgent.instructions}
+        IMPORTANT: You have joined the call. GREET THE USER IMMEDIATELY. DO NOT WAIT.
+      `,
+      voice: "alloy",
+      turn_detection: {
+        type: "server_vad", 
+      }
     });
   } else if (eventType === "call.session_participant_left") {
     const event = payload as CallSessionParticipantLeftEvent;
