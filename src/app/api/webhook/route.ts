@@ -12,7 +12,7 @@ import {
   CallTranscriptionReadyEvent,
   MessageNewEvent,
 } from "@stream-io/node-sdk";
-import { and, eq, not } from "drizzle-orm";
+import { and, eq, not, or } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     if (!meetingId) {
       return NextResponse.json(
-        { error: "Missing meeting ID in webhook payload" },
+        { error: "Missing meeting ID" },
         { status: 400 },
       );
     }
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     if (!meetingId) {
       return NextResponse.json(
-        { error: "Missing meeting ID in webhook payload" },
+        { error: "Missing meeting ID" },
         { status: 400 },
       );
     }
@@ -142,12 +142,8 @@ export async function POST(request: NextRequest) {
     const event = payload as CallTranscriptionReadyEvent;
     const meetingId = event.call_cid.split(":")[1];
 
-    if (!meetingId) {
-      return NextResponse.json(
-        { error: "Missing meeting ID in webhook payload" },
-        { status: 400 },
-      );
-    }
+    if (!meetingId)
+      return NextResponse.json({ error: "No ID" }, { status: 400 });
 
     const [updatedMeeting] = await db
       .update(meetings)
@@ -155,12 +151,9 @@ export async function POST(request: NextRequest) {
       .where(eq(meetings.id, meetingId))
       .returning();
 
-    if (!updatedMeeting) {
-      return NextResponse.json(
-        { error: "Meeting not found for transcription update" },
-        { status: 404 },
-      );
-    }
+    if (!updatedMeeting)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     await inngest.send({
       name: "meetings/processing",
       data: {
@@ -172,12 +165,8 @@ export async function POST(request: NextRequest) {
     const event = payload as CallRecordingReadyEvent;
     const meetingId = event.call_cid.split(":")[1];
 
-    if (!meetingId) {
-      return NextResponse.json(
-        { error: "Missing meeting ID in webhook payload" },
-        { status: 400 },
-      );
-    }
+    if (!meetingId)
+      return NextResponse.json({ error: "No ID" }, { status: 400 });
 
     await db
       .update(meetings)
@@ -188,24 +177,28 @@ export async function POST(request: NextRequest) {
     const event = payload as MessageNewEvent;
 
     const userId = event.user?.id;
-    const channelId = event.channel_id;
+    const cid = event.cid;
     const text = event.message?.text;
 
-    if (!userId || !channelId || !text) {
-      return NextResponse.json(
-        { error: "Missing data in message.new webhook payload" },
-        { status: 400 },
-      );
+    if (!userId || !cid || !text) {
+      return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
+
+    const [channelType, channelId] = cid.split(":");
 
     const [existingMeeting] = await db
       .select()
       .from(meetings)
-      .where(and(eq(meetings.id, channelId), eq(meetings.status, "completed")));
+      .where(
+        and(
+          eq(meetings.id, channelId),
+          or(eq(meetings.status, "completed"), eq(meetings.status, "active")),
+        ),
+      );
 
     if (!existingMeeting) {
       return NextResponse.json(
-        { error: "Meeting not found or not completed" },
+        { error: "Meeting not found/not active" },
         { status: 404 },
       );
     }
@@ -224,27 +217,21 @@ export async function POST(request: NextRequest) {
       You are an AI assistant helping the user revisit a recently completed meeting.
       Below is a summary of the meeting, generated from the transcript:
       
-      ${existingMeeting.summary}
+      ${existingMeeting.summary || "Summary not generated yet."}
       
-      The following are your original instructions from the live meeting assistant. Please continue to follow these behavioral guidelines as you assist the user:
-      
+      The following are your original instructions:
       ${existingAgent.instructions}
       
-      The user may ask questions about the meeting, request clarifications, or ask for follow-up actions.
-      Always base your responses on the meeting summary above.
-      
-      You also have access to the recent conversation history between you and the user. Use the context of previous messages to provide relevant, coherent, and helpful responses. If the user's question refers to something discussed earlier, make sure to take that into account and maintain continuity in the conversation.
-      
-      If the summary does not contain enough information to answer a question, politely let the user know.
-      
-      Be concise, helpful, and focus on providing accurate information from the meeting and the ongoing conversation.
+      Be concise, helpful, and focus on providing accurate information.
       `;
 
-      const channel = streamChat.channel("messaging", channelId);
-      await channel.watch();
+      const channel = streamChat.channel(channelType, channelId);
 
-      const previousMessages = channel.state.messages
-        .slice(-5)
+      const { messages } = await channel.query({
+        messages: { limit: 5 },
+      });
+
+      const previousMessages = messages
         .filter((msg) => msg.text && msg.text.trim() !== "")
         .map<ChatCompletionMessageParam>((message) => ({
           role: message.user?.id === existingAgent.id ? "assistant" : "user",
@@ -280,7 +267,7 @@ export async function POST(request: NextRequest) {
         image: avatarUrl,
       });
 
-      channel.sendMessage({
+      await channel.sendMessage({
         text: GPTResponseText,
         user: {
           id: existingAgent.id,
