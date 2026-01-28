@@ -4,12 +4,12 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Channel as StreamChannel } from "stream-chat";
 import {
-  Chat,
-  useCreateChatClient,
   Channel,
+  Chat,
   MessageInput,
   MessageList,
   Thread,
+  useCreateChatClient,
   Window,
 } from "stream-chat-react";
 
@@ -75,9 +75,9 @@ export const ChatUI = ({
             </div>
             <MessageInput />
           </Window>
-          <Thread/>
+          <Thread />
         </Channel>
       </Chat>
     </div>
-  )
+  );
 };

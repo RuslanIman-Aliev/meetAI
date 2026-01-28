@@ -14,11 +14,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ActiveState } from "../components/active-state";
 import { CancelledState } from "../components/cancelled-state";
+import { CompletedState } from "../components/completed-state";
 import { MeetingIdViewHeader } from "../components/meeting-id-view-header";
 import { ProcessingState } from "../components/processing-state";
 import { UpcomingState } from "../components/upcoming-state";
 import { UpdateMeetingDialog } from "../components/update-meeting-dialog";
-import { CompletedState } from "../components/completed-state";
 
 interface Props {
   meetingId: string;
@@ -88,13 +88,7 @@ export const MeetingIdView = ({ meetingId }: Props) => {
         {isCompleted && <CompletedState data={data} />}
         {isProcessing && <ProcessingState />}
         {isActive && <ActiveState meetingId={meetingId} />}
-        {isUpcoming && (
-          <UpcomingState
-            meetingId={meetingId}
-            onCancelMeeting={() => {}}
-            isCanceling={false}
-          />
-        )}
+        {isUpcoming && <UpcomingState meetingId={meetingId} />}
       </div>
     </>
   );
