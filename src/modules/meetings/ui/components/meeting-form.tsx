@@ -21,6 +21,7 @@ import { useState } from "react";
 import { CommandSelect } from "@/components/command-select";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { NewAgentDialog } from "@/modules/agents/ui/components/new-agent-dialog";
+import { useRouter } from "next/navigation";
 
 interface MeetingFormProps {
   onSuccess?: (id?: string) => void;
@@ -34,7 +35,7 @@ export const MeetingForm = ({
   initialValues,
 }: MeetingFormProps) => {
   const trpc = useTRPC();
-  //const router = useRouter();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const [openNewAgentDialog, setOpenNewAgentDialog] = useState(false);
@@ -53,10 +54,18 @@ export const MeetingForm = ({
           trpc.meetings.getMany.queryOptions({}),
         );
 
+        await queryClient.invalidateQueries(
+          trpc.premium.getFreeUsage.queryOptions(),
+        );
+
         onSuccess?.(data.id);
       },
       onError: (error) => {
         toast.error(`Failed to create meeting: ${error.message}`);
+
+        if(error.data?.code === "FORBIDDEN"){
+          router.push("/upgrade");
+        }
       },
     }),
   );
@@ -100,74 +109,88 @@ export const MeetingForm = ({
     }
   };
   return (
-   <>
-    <NewAgentDialog isOpen={openNewAgentDialog} onOpenChange={setOpenNewAgentDialog} />
-    <Form {...form}>
-      <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          name="name"
-          control={form.control}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="e.g. Math Consultations" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <>
+      <NewAgentDialog
+        isOpen={openNewAgentDialog}
+        onOpenChange={setOpenNewAgentDialog}
+      />
+      <Form {...form}>
+        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            name="name"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="e.g. Math Consultations" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          name="agentId"
-          control={form.control}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Agent</FormLabel>
-              <FormControl>
-                <CommandSelect options={(agents.data?.items || []).map(agent => ({
-                  id: agent.id,
-                  value: agent.id,
-                  children: (
-                    <div className="flex items-center gap-x-2">
-                      <GeneratedAvatar seed={agent.name} variant="botttsNeutral" className="border size-6" />
-                      <span>{agent.name}</span>
-                    </div>
-                  ),
-                }))} 
-                onSelect={field.onChange}
-                onSearch={setAgentSearch} 
-                value={field.value}
-                placeholder="Select an value"/>
-              </FormControl>
-              <FormDescription>
-                Not found what you&apos;re looking for? Create a new agent first.
-                <button type="button" className="hover:underline text-primary" onClick={() => setOpenNewAgentDialog(true)}>
-                  Create new Agent
-                </button>
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            name="agentId"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Agent</FormLabel>
+                <FormControl>
+                  <CommandSelect
+                    options={(agents.data?.items || []).map((agent) => ({
+                      id: agent.id,
+                      value: agent.id,
+                      children: (
+                        <div className="flex items-center gap-x-2">
+                          <GeneratedAvatar
+                            seed={agent.name}
+                            variant="botttsNeutral"
+                            className="border size-6"
+                          />
+                          <span>{agent.name}</span>
+                        </div>
+                      ),
+                    }))}
+                    onSelect={field.onChange}
+                    onSearch={setAgentSearch}
+                    value={field.value}
+                    placeholder="Select an value"
+                  />
+                </FormControl>
+                <FormDescription>
+                  Not found what you&apos;re looking for? Create a new agent
+                  first.
+                  <button
+                    type="button"
+                    className="hover:underline text-primary"
+                    onClick={() => setOpenNewAgentDialog(true)}
+                  >
+                    Create new Agent
+                  </button>
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className="flex justify-between gap-x-2">
-          {onCancel && (
-            <Button
-              variant="ghost"
-              type="button"
-              disabled={isPending}
-              onClick={() => onCancel()}
-            >
-              Cancel
+          <div className="flex justify-between gap-x-2">
+            {onCancel && (
+              <Button
+                variant="ghost"
+                type="button"
+                disabled={isPending}
+                onClick={() => onCancel()}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button type="submit" disabled={isPending}>
+              {isEdit ? "Update" : "Create Meeting"}
             </Button>
-          )}
-          <Button type="submit" disabled={isPending}>
-            {isEdit ? "Update" : "Create Meeting"}
-          </Button>
-        </div>
-      </form>
-    </Form>
-   </>
+          </div>
+        </form>
+      </Form>
+    </>
   );
 };
